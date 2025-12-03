@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - OralScan AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .action-bar {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .btn-primary {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .date-range {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .date-range select {
+            padding: 10px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-bar {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+    <img src="logo.png" alt="Logo" style="height: 120px; width: auto;">
+    <span>ORISCOPE</span>
+</div>
+
+        <div class="navbar-menu">
+            <a href="dashboard.html" class="nav-btn">← Back to Dashboard</a>
+            <a href="scan.html" class="nav-btn">New Scan</a>
+            <a href="history.html" class="nav-btn">History</a>
+<a href="comparison.html" class="nav-btn">comparison</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>📊 Analytics Dashboard</h1>
+        <p class="subtitle">Comprehensive analysis of your oral cancer screening data</p>
+
+        <!-- Summary Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-value" id="totalScans">0</div>
+                <div class="stat-label">Total Scans</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-value" id="highRiskCount">0</div>
+                <div class="stat-label">High Risk Cases</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value" id="avgRisk">0%</div>
+                <div class="stat-label">Average Risk Level</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✓</div>
+                <div class="stat-value" id="avgConfidence">0%</div>
+                <div class="stat-label">Average Confidence</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h2>📊 Risk Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="riskDistributionChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2>📈 Scans Over Time</h2>
+                <div class="chart-container">
+                    <canvas id="scansOverTimeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2>🔬 Scan Type Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="scanTypeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h2>🎯 Confidence Levels</h2>
+                <div class="chart-container">
+                    <canvas id="confidenceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="date-range">
+                <label style="font-weight: 600; color: #333;">Time Period:</label>
+                <select id="dateRange" onchange="updateCharts()">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="all">All Time</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" onclick="downloadAnalyticsReport()">
+                    📥 Download Report (PDF)
+                </button>
+                <button class="btn-primary" onclick="downloadDataCSV()">
+                    📊 Export Data (CSV)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-login for demo
+        if (!sessionStorage.getItem('isLoggedIn')) {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userEmail', 'demo@oralscan.ai');
+            sessionStorage.setItem('userId', 'demo-user');
+            sessionStorage.setItem('userName', 'Dr. Demo User');
+        }
+
+        let allScans = [];
+        let charts = {};
+
+        function loadData() {
+            allScans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            
+            // Generate sample data if empty
+            if (allScans.length === 0) {
+                generateSampleData();
+                allScans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            }
+            
+            updateStatistics();
+            createCharts();
+        }
+
+        function generateSampleData() {
+            const sampleScans = [];
+            const riskLevels = ['low', 'moderate', 'high'];
+            const scanTypes = ['autofluorescence', 'normal'];
+            
+            for (let i = 0; i < 20; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - Math.floor(Math.random() * 60));
+                
+                const riskLevel = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+                const riskPercentage = riskLevel === 'high' ? 70 + Math.random() * 30 : 
+                                      riskLevel === 'moderate' ? 30 + Math.random() * 40 : 
+                                      Math.random() * 30;
+                
+                sampleScans.push({
+                    id: 'scan_' + Date.now() + '_' + i,
+                    timestamp: date.toISOString(),
+                    riskLevel: riskLevel,
+                    riskPercentage: parseFloat(riskPercentage.toFixed(1)),
+                    confidence: parseFloat((0.70 + Math.random() * 0.25).toFixed(2)),
+                    scanType: scanTypes[Math.floor(Math.random() * 2)],
+                    lesions: []
+                });
+            }
+            
+            localStorage.setItem('userScans', JSON.stringify(sampleScans));
+        }
+
+        function updateStatistics() {
+            const totalScans = allScans.length;
+            const highRiskCount = allScans.filter(s => s.riskLevel === 'high').length;
+            const avgRisk = totalScans > 0 ? 
+                (allScans.reduce((sum, s) => sum + s.riskPercentage, 0) / totalScans).toFixed(1) : 0;
+            const avgConfidence = totalScans > 0 ? 
+                (allScans.reduce((sum, s) => sum + (s.confidence * 100), 0) / totalScans).toFixed(0) : 0;
+
+            document.getElementById('totalScans').textContent = totalScans;
+            document.getElementById('highRiskCount').textContent = highRiskCount;
+            document.getElementById('avgRisk').textContent = avgRisk + '%';
+            document.getElementById('avgConfidence').textContent = avgConfidence + '%';
+        }
+
+        function createCharts() {
+            createRiskDistributionChart();
+            createScansOverTimeChart();
+            createScanTypeChart();
+            createConfidenceChart();
+        }
+
+        function createRiskDistributionChart() {
+            const ctx = document.getElementById('riskDistributionChart');
+            
+            const riskCounts = {
+                low: allScans.filter(s => s.riskLevel === 'low').length,
+                moderate: allScans.filter(s => s.riskLevel === 'moderate').length,
+                high: allScans.filter(s => s.riskLevel === 'high').length
+            };
+
+            if (charts.riskDistribution) {
+                charts.riskDistribution.destroy();
+            }
+
+            charts.riskDistribution = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
+                    datasets: [{
+                        data: [riskCounts.low, riskCounts.moderate, riskCounts.high],
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createScansOverTimeChart() {
+            const ctx = document.getElementById('scansOverTimeChart');
+            
+            // Group scans by date
+            const scansByDate = {};
+            allScans.forEach(scan => {
+                const date = new Date(scan.timestamp).toLocaleDateString();
+                scansByDate[date] = (scansByDate[date] || 0) + 1;
+            });
+
+            // Sort dates and get last 30 days
+            const dates = Object.keys(scansByDate).sort((a, b) => new Date(a) - new Date(b)).slice(-30);
+            const counts = dates.map(date => scansByDate[date]);
+
+            if (charts.scansOverTime) {
+                charts.scansOverTime.destroy();
+            }
+
+            charts.scansOverTime = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Number of Scans',
+                        data: counts,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createScanTypeChart() {
+            const ctx = document.getElementById('scanTypeChart');
+            
+            const typeCounts = {
+                autofluorescence: allScans.filter(s => s.scanType === 'autofluorescence').length,
+                normal: allScans.filter(s => s.scanType === 'normal').length
+            };
+
+            if (charts.scanType) {
+                charts.scanType.destroy();
+            }
+
+            charts.scanType = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Autofluorescence', 'Normal Light'],
+                    datasets: [{
+                        data: [typeCounts.autofluorescence, typeCounts.normal],
+                        backgroundColor: ['#667eea', '#764ba2'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function createConfidenceChart() {
+            const ctx = document.getElementById('confidenceChart');
+            
+            // Group by confidence ranges
+            const ranges = {
+                '70-80%': 0,
+                '80-90%': 0,
+                '90-95%': 0,
+                '95-100%': 0
+            };
+
+            allScans.forEach(scan => {
+                const conf = scan.confidence * 100;
+                if (conf < 80) ranges['70-80%']++;
+                else if (conf < 90) ranges['80-90%']++;
+                else if (conf < 95) ranges['90-95%']++;
+                else ranges['95-100%']++;
+            });
+
+            if (charts.confidence) {
+                charts.confidence.destroy();
+            }
+
+            charts.confidence = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(ranges),
+                    datasets: [{
+                        label: 'Number of Scans',
+                        data: Object.values(ranges),
+                        backgroundColor: '#28a745',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            const dateRange = document.getElementById('dateRange').value;
+            let filteredScans = [...allScans];
+
+            if (dateRange !== 'all') {
+                const daysAgo = parseInt(dateRange);
+                const cutoffDate = new Date();
+                cutoffDate.setDate(cutoffDate.getDate() - daysAgo);
+
+                filteredScans = allScans.filter(scan => 
+                    new Date(scan.timestamp) >= cutoffDate
+                );
+            }
+
+            allScans = filteredScans;
+            updateStatistics();
+            createCharts();
+
+            // Restore full scan list
+            setTimeout(() => {
+                allScans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            }, 100);
+        }
+
+        function downloadAnalyticsReport() {
+            const report = `
+ORAL CANCER SCREENING ANALYTICS REPORT
+OralScan AI - Advanced Detection System
+========================================
+
+Generated: ${new Date().toLocaleString()}
+User: ${sessionStorage.getItem('userName') || 'User'}
+Email: ${sessionStorage.getItem('userEmail') || 'N/A'}
+
+SUMMARY STATISTICS
+==================
+Total Scans: ${allScans.length}
+High Risk Cases: ${allScans.filter(s => s.riskLevel === 'high').length}
+Moderate Risk Cases: ${allScans.filter(s => s.riskLevel === 'moderate').length}
+Low Risk Cases: ${allScans.filter(s => s.riskLevel === 'low').length}
+
+Average Risk Level: ${(allScans.reduce((sum, s) => sum + s.riskPercentage, 0) / allScans.length).toFixed(1)}%
+Average Confidence: ${(allScans.reduce((sum, s) => sum + (s.confidence * 100), 0) / allScans.length).toFixed(1)}%
+
+SCAN TYPE BREAKDOWN
+===================
+Autofluorescence Scans: ${allScans.filter(s => s.scanType === 'autofluorescence').length}
+Normal Light Scans: ${allScans.filter(s => s.scanType === 'normal').length}
+
+RISK DISTRIBUTION
+=================
+Low Risk (0-30%): ${allScans.filter(s => s.riskPercentage < 30).length} scans
+Moderate Risk (30-70%): ${allScans.filter(s => s.riskPercentage >= 30 && s.riskPercentage < 70).length} scans
+High Risk (70-100%): ${allScans.filter(s => s.riskPercentage >= 70).length} scans
+
+CONFIDENCE ANALYSIS
+===================
+70-80% Confidence: ${allScans.filter(s => s.confidence >= 0.70 && s.confidence < 0.80).length} scans
+80-90% Confidence: ${allScans.filter(s => s.confidence >= 0.80 && s.confidence < 0.90).length} scans
+90-95% Confidence: ${allScans.filter(s => s.confidence >= 0.90 && s.confidence < 0.95).length} scans
+95-100% Confidence: ${allScans.filter(s => s.confidence >= 0.95).length} scans
+
+DETAILED SCAN HISTORY
+=====================
+${allScans.map((scan, i) => `
+Scan ${i + 1}:
+  ID: ${scan.id}
+  Date: ${new Date(scan.timestamp).toLocaleString()}
+  Risk Level: ${scan.riskLevel.toUpperCase()}
+  Risk %: ${scan.riskPercentage}%
+  Confidence: ${(scan.confidence * 100).toFixed(1)}%
+  Type: ${scan.scanType}
+`).join('\n')}
+
+RECOMMENDATIONS
+===============
+${allScans.filter(s => s.riskLevel === 'high').length > 0 ? 
+`⚠️  HIGH PRIORITY: ${allScans.filter(s => s.riskLevel === 'high').length} high-risk case(s) detected.
+   Immediate clinical follow-up recommended.` : 
+'✓ No high-risk cases detected.'}
+
+${allScans.filter(s => s.riskLevel === 'moderate').length > 0 ? 
+`📋 MODERATE: ${allScans.filter(s => s.riskLevel === 'moderate').length} moderate-risk case(s) detected.
+   Follow-up screening in 3 months recommended.` : 
+''}
+
+            `;
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analytics_report_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('✓ Analytics report downloaded successfully!');
+        }
+
+        function downloadDataCSV() {
+            let csv = 'Scan ID,Date,Time,Risk Level,Risk %,Confidence %,Scan Type,Lesion Count\n';
+            
+            allScans.forEach(scan => {
+                const date = new Date(scan.timestamp);
+                csv += `"${scan.id}",`;
+                csv += `"${date.toLocaleDateString()}",`;
+                csv += `"${date.toLocaleTimeString()}",`;
+                csv += `"${scan.riskLevel}",`;
+                csv += `${scan.riskPercentage},`;
+                csv += `${(scan.confidence * 100).toFixed(1)},`;
+                csv += `"${scan.scanType}",`;
+                csv += `${scan.lesions ? scan.lesions.length : 0}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `scan_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('✓ Data exported to CSV successfully!');
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', loadData);
+    </script>
+</body>
+</html>

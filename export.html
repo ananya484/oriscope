@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export & Backup - OralScan AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: white; font-size: 36px; margin-bottom: 30px; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .card h2 { color: #333; margin-bottom: 15px; }
+        .btn {
+            width: 100%; padding: 15px; margin: 10px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+        }
+        .btn.green { background: #28a745; }
+        .btn.red { background: #dc3545; }
+        .status {
+            padding: 15px; margin-top: 15px;
+            border-radius: 8px; display: none;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .stats {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 15px; margin-bottom: 20px;
+        }
+        .stat {
+            background: #f8f9fa;
+            padding: 15px; border-radius: 8px; text-align: center;
+        }
+        .stat-number { font-size: 28px; font-weight: bold; color: #667eea; }
+        .stat-label { font-size: 12px; color: #666; }
+        .firebase-status {
+            padding: 10px; margin-bottom: 20px;
+            border-radius: 8px; font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        margin-bottom:20px;
+    ">
+        <h1>📦 Export & Backup</h1>
+
+        <!-- Dashboard Button (RIGHT SIDE, WHITE BOX) -->
+        <a href="dashboard.html" 
+            style="
+                background:white;
+                color:#667eea;
+                border:2px solid #667eea;
+                padding:10px 18px;
+                border-radius:8px;
+                font-weight:600;
+                text-decoration:none;
+                font-size:14px;
+                box-shadow:0 2px 10px rgba(0,0,0,0.1);
+            ">
+            ← Dashboard
+        </a>
+    </div>
+
+    <div id="firebaseStatusDiv" class="firebase-status"></div>
+
+
+        <!-- Export Card -->
+        <div class="card">
+            <h2>📤 Export Data</h2>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="totalScans">0</div>
+                    <div class="stat-label">Total Scans</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="dataSize">0 KB</div>
+                    <div class="stat-label">Data Size</div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="testButton()">🧪 TEST BUTTON</button>
+            <button class="btn green" onclick="downloadLocalJSON()">💾 Download JSON (Local)</button>
+            <button class="btn green" onclick="downloadLocalCSV()">📊 Download CSV (Local)</button>
+            <button class="btn" id="btnExportFirebase" onclick="exportToFirebase()">📤 Upload to Firebase</button>
+            <div class="status" id="exportStatus"></div>
+        </div>
+
+        <!-- Backup Card -->
+        <div class="card">
+            <h2>📥 Backup from Firebase</h2>
+            <button class="btn green" id="btnBackupFirebase" onclick="backupFromFirebase()">📥 Download from Firebase</button>
+            <div class="status" id="backupStatus"></div>
+        </div>
+
+        <!-- GDPR Card -->
+        <div class="card">
+            <h2>🔒 Data Management</h2>
+            <button class="btn" onclick="gdprExport()">🔒 GDPR Export</button>
+            <button class="btn red" onclick="deleteData()">🗑️ Delete All Data</button>
+            <div class="status" id="gdprStatus"></div>
+        </div>
+    </div>
+
+<script>
+console.log("✓ Script loaded!");
+
+// Firebase flags
+var firebaseAvailable = false;
+var db = null;
+var storage = null;
+
+// Auto login
+if (!sessionStorage.getItem("userId")) {
+    sessionStorage.setItem("userId", "demo-user");
+    sessionStorage.setItem("userName", "Dr. Demo User");
+    sessionStorage.setItem("userEmail", "demo@oralscan.ai");
+}
+
+var allScans = [];
+
+// Load stats (LOCAL)
+function loadStats() {
+    allScans = JSON.parse(localStorage.getItem("userScans") || "[]");
+    document.getElementById("totalScans").textContent = allScans.length;
+    var size = new Blob([JSON.stringify(allScans)]).size;
+    document.getElementById("dataSize").textContent = (size / 1024).toFixed(2) + " KB";
+}
+
+// TEST BUTTON
+function testButton() {
+    alert("Test button working!");
+}
+
+// JSON export
+function downloadLocalJSON() {
+    var blob = new Blob(
+        [JSON.stringify(allScans, null, 2)],
+        { type: "application/json" }
+    );
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "OralScan_Export_" + Date.now() + ".json";
+    a.click();
+
+    showStatus("exportStatus", "JSON Downloaded!", "success");
+}
+
+// CSV export
+function downloadLocalCSV() {
+    var csv = "Scan ID,Date,Time,Risk Level,Risk %,Confidence %,Scan Type,Lesions\n";
+
+    allScans.forEach(scan => {
+        var d = new Date(scan.timestamp);
+        csv += `"${scan.id}","${d.toLocaleDateString()}","${d.toLocaleTimeString()}","${scan.riskLevel}",${scan.riskPercentage},${(scan.confidence * 100).toFixed(1)},"${scan.scanType}",${scan.lesions ? scan.lesions.length : 0}\n`;
+    });
+
+    var blob = new Blob([csv], { type: "text/csv" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "OralScan_Data_" + Date.now() + ".csv";
+    a.click();
+
+    showStatus("exportStatus", "CSV Downloaded!", "success");
+}
+
+// UPLOAD TO REALTIME DATABASE
+function exportToFirebase() {
+    if (!firebaseAvailable) {
+        showStatus("exportStatus", "Firebase not available!", "warning");
+        return;
+    }
+
+    showStatus("exportStatus", "Uploading to Firebase...", "success");
+
+    var userId = sessionStorage.getItem("userId");
+    var timestamp = Date.now();
+
+    db.ref("exports/" + userId + "/export_" + timestamp)
+    .set({
+        exportDate: new Date().toISOString(),
+        scans: allScans
+    })
+    .then(() => showStatus("exportStatus", "Upload Complete!", "success"))
+    .catch(err => showStatus("exportStatus", err.message, "error"));
+}
+
+// DOWNLOAD FROM REALTIME DATABASE
+function backupFromFirebase() {
+    if (!firebaseAvailable) {
+        showStatus("backupStatus", "Firebase not available!", "warning");
+        return;
+    }
+
+    showStatus("backupStatus", "Retrieving backup...", "success");
+
+    var userId = sessionStorage.getItem("userId");
+
+    db.ref("exports/" + userId)
+    .once("value")
+    .then(snapshot => {
+        if (!snapshot.exists()) {
+            showStatus("backupStatus", "⚠️ No backup found!", "warning");
+            return;
+        }
+
+        var data = snapshot.val();
+
+        // Save + show
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "Firebase_RTDB_Backup_" + Date.now() + ".json";
+        a.click();
+
+        showStatus("backupStatus", "Backup Downloaded!", "success");
+
+        // Restore scans count
+        let latestKey = Object.keys(data).sort().reverse()[0];
+        if (data[latestKey].scans) {
+            allScans = data[latestKey].scans;
+            localStorage.setItem("userScans", JSON.stringify(allScans));
+            loadStats();
+        }
+
+    })
+    .catch(err => showStatus("backupStatus", err.message, "error"));
+}
+
+function gdprExport() {
+    var blob = new Blob(
+        [JSON.stringify(allScans, null, 2)],
+        { type: "application/json" }
+    );
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "GDPR_Export.json";
+    a.click();
+
+    showStatus("gdprStatus", "GDPR Exported!", "success");
+}
+
+function deleteData() {
+    localStorage.removeItem("userScans");
+    allScans = [];
+    loadStats();
+    showStatus("gdprStatus", "All data deleted!", "success");
+}
+
+function showStatus(id, msg, type) {
+    var el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = "status " + type;
+    el.style.display = "block";
+}
+
+loadStats();
+</script>
+
+<!-- FIREBASE SDK (Realtime DB + Storage) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+<!-- FIREBASE INITIALIZATION (RTDB WORKING) -->
+<script>
+console.log("🔥 Initializing Firebase Realtime Database...");
+
+const firebaseConfig = {
+    apiKey: "AIzaSyAf9opJLHPQRdpxvnKc4tXhqsep7HIXDC4",
+    authDomain: "oralscan-7c71e.firebaseapp.com",
+    databaseURL: "https://oralscan-7c71e-default-rtdb.firebaseio.com",
+    projectId: "oralscan-7c71e",
+    storageBucket: "oralscan-7c71e.appspot.com",
+    messagingSenderId: "282002919838",
+    appId: "1:282002919838:web:4419d9fc847cfb1ce0468f",
+    measurementId: "G-ZZHBQX8YB8"
+};
+
+try {
+    firebase.initializeApp(firebaseConfig);
+
+    // IMPORTANT: Realtime Database
+    db = firebase.database();
+    storage = firebase.storage();
+
+    firebaseAvailable = true;
+
+    document.getElementById("firebaseStatusDiv").textContent =
+        "✓ Connected to Firebase Realtime Database";
+    document.getElementById("firebaseStatusDiv").className =
+        "firebase-status status success";
+
+    console.log("🔥 Firebase RTDB ready!");
+} catch (err) {
+    console.error(err);
+    firebaseAvailable = false;
+
+    document.getElementById("firebaseStatusDiv").textContent =
+        "⚠️ Firebase not available";
+    document.getElementById("firebaseStatusDiv").className =
+        "firebase-status status warning";
+}
+</script>
+
+</body>
+</html>
+

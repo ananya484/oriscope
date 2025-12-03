@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Comparison - OralScan AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .navbar-menu { display: flex; gap: 20px; }
+        .nav-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .nav-btn:hover { background: #667eea; color: white; }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+        .selection-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .selection-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .selection-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+        .compare-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .compare-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .compare-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .scan-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 10px;
+        }
+        .scan-option {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .scan-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        .scan-option.selected {
+            border-color: #667eea;
+            background: #e8eaf6;
+        }
+        .scan-option-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .scan-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .scan-id {
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+        .scan-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .risk-high { background: #ffebee; color: #c62828; }
+        .risk-moderate { background: #fff3e0; color: #ef6c00; }
+        .risk-low { background: #e8f5e9; color: #2e7d32; }
+        .comparison-view {
+            display: none;
+        }
+        .comparison-view.active {
+            display: block;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .comparison-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        .comparison-card h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .comparison-image {
+            width: 100%;
+            height: 200px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+            font-size: 48px;
+        }
+        .comparison-details {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+        .comparison-chart {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        .back-btn {
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .timeline-view {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+        .timeline-item {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            border-left: 3px solid #667eea;
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        .timeline-date {
+            min-width: 150px;
+            font-weight: 600;
+            color: #667eea;
+        }
+        .timeline-content {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+    <div class="navbar-brand">
+        <img src="logo.png" alt="Logo" style="height: 120px; width: auto;">
+        <span>ORISCOPE</span>
+    </div>
+
+    <div class="navbar-menu">
+        <a href="dashboard.html" class="nav-btn">← Dashboard</a>
+        <a href="history.html" class="nav-btn">History</a>
+        <a href="export.html" class="nav-btn">Export</a>
+    </div>
+</nav>
+
+
+    <div class="container">
+        <h1>🔄 Scan Comparison</h1>
+
+        <!-- Selection Panel -->
+        <div class="selection-panel" id="selectionPanel">
+            <div class="selection-header">
+                <h2>Select 2-4 Scans to Compare</h2>
+                <button class="compare-btn" id="compareBtn" onclick="compareScans()" disabled>
+                    Compare Selected (<span id="selectedCount">0</span>)
+                </button>
+            </div>
+            <div class="scan-selector" id="scanSelector">
+                <!-- Scans will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Comparison View -->
+        <div class="comparison-view" id="comparisonView">
+            <button class="back-btn" onclick="backToSelection()">← Back to Selection</button>
+            
+            <div class="comparison-grid" id="comparisonGrid">
+                <!-- Comparison cards will be loaded here -->
+            </div>
+
+            <div class="comparison-chart">
+                <h2 style="color: #333; margin-bottom: 20px;">Risk Comparison Chart</h2>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+
+            <div class="timeline-view">
+                <h2 style="color: #333; margin-bottom: 20px;">📅 Timeline View</h2>
+                <div id="timelineContainer">
+                    <!-- Timeline will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        console.log('✓ Comparison tool loaded');
+
+        var allScans = [];
+        var selectedScans = [];
+        var comparisonChart = null;
+
+        // Load scans
+        function loadScans() {
+            allScans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            console.log('✓ Loaded', allScans.length, 'scans');
+
+            var selectorDiv = document.getElementById('scanSelector');
+            
+            if (allScans.length === 0) {
+                selectorDiv.innerHTML = '<p style="text-align: center; color: #666;">No scans available. Please perform some scans first.</p>';
+                return;
+            }
+
+            selectorDiv.innerHTML = '';
+            
+            for (var i = 0; i < allScans.length; i++) {
+                var scan = allScans[i];
+                var date = new Date(scan.timestamp);
+                
+                var scanDiv = document.createElement('div');
+                scanDiv.className = 'scan-option';
+                scanDiv.onclick = (function(scanId) {
+                    return function() { toggleScan(scanId); };
+                })(scan.id);
+                
+                var riskClass = 'risk-' + scan.riskLevel;
+                
+                scanDiv.innerHTML = `
+                    <div class="scan-option-header">
+                        <input type="checkbox" class="scan-checkbox" id="check_${scan.id}" onclick="event.stopPropagation()">
+                        <span class="scan-id">${scan.id}</span>
+                    </div>
+                    <div class="scan-info">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
+                    <div class="scan-info">${scan.scanType}</div>
+                    <span class="risk-badge ${riskClass}">${scan.riskLevel}</span>
+                    <span style="margin-left: 10px; font-size: 12px; color: #666;">${scan.riskPercentage.toFixed(1)}%</span>
+                `;
+                
+                selectorDiv.appendChild(scanDiv);
+            }
+        }
+
+        // Toggle scan selection
+        function toggleScan(scanId) {
+            var checkbox = document.getElementById('check_' + scanId);
+            checkbox.checked = !checkbox.checked;
+            
+            var scanDiv = checkbox.closest('.scan-option');
+            
+            if (checkbox.checked) {
+                if (selectedScans.length >= 4) {
+                    checkbox.checked = false;
+                    alert('⚠️ You can compare maximum 4 scans at a time.');
+                    return;
+                }
+                selectedScans.push(scanId);
+                scanDiv.classList.add('selected');
+            } else {
+                var index = selectedScans.indexOf(scanId);
+                if (index > -1) {
+                    selectedScans.splice(index, 1);
+                }
+                scanDiv.classList.remove('selected');
+            }
+            
+            updateCompareButton();
+        }
+
+        // Update compare button
+        function updateCompareButton() {
+            var count = selectedScans.length;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('compareBtn').disabled = count < 2;
+        }
+
+        // Compare scans
+        function compareScans() {
+            if (selectedScans.length < 2) {
+                alert('⚠️ Please select at least 2 scans to compare.');
+                return;
+            }
+
+            console.log('✓ Comparing', selectedScans.length, 'scans');
+
+            // Hide selection panel, show comparison view
+            document.getElementById('selectionPanel').style.display = 'none';
+            document.getElementById('comparisonView').classList.add('active');
+
+            // Build comparison cards
+            var gridDiv = document.getElementById('comparisonGrid');
+            gridDiv.innerHTML = '';
+
+            var chartLabels = [];
+            var chartData = [];
+
+            for (var i = 0; i < selectedScans.length; i++) {
+                var scanId = selectedScans[i];
+                var scan = allScans.find(function(s) { return s.id === scanId; });
+                
+                if (!scan) continue;
+
+                var date = new Date(scan.timestamp);
+                chartLabels.push(scan.id);
+                chartData.push(scan.riskPercentage);
+
+                var riskClass = 'risk-' + scan.riskLevel;
+
+                var card = document.createElement('div');
+                card.className = 'comparison-card';
+                card.innerHTML = `
+                    <h3>${scan.id}</h3>
+                    <div class="comparison-image">🦷</div>
+                    <div class="comparison-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Date:</span>
+                            <span class="detail-value">${date.toLocaleDateString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Time:</span>
+                            <span class="detail-value">${date.toLocaleTimeString()}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Risk Level:</span>
+                            <span class="detail-value"><span class="risk-badge ${riskClass}">${scan.riskLevel}</span></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Risk %:</span>
+                            <span class="detail-value">${scan.riskPercentage.toFixed(1)}%</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Confidence:</span>
+                            <span class="detail-value">${(scan.confidence * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Scan Type:</span>
+                            <span class="detail-value">${scan.scanType}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Lesions:</span>
+                            <span class="detail-value">${scan.lesions ? scan.lesions.length : 0}</span>
+                        </div>
+                    </div>
+                `;
+                gridDiv.appendChild(card);
+            }
+
+            // Create comparison chart
+            createComparisonChart(chartLabels, chartData);
+
+            // Create timeline
+            createTimeline();
+        }
+
+        // Create comparison chart
+        function createComparisonChart(labels, data) {
+            if (comparisonChart) {
+                comparisonChart.destroy();
+            }
+
+            var ctx = document.getElementById('comparisonChart').getContext('2d');
+            
+            comparisonChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Risk Percentage',
+                        data: data,
+                        backgroundColor: data.map(function(val) {
+                            if (val >= 70) return '#ef5350';
+                            if (val >= 40) return '#ff9800';
+                            return '#66bb6a';
+                        }),
+                        borderWidth: 0,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Risk: ' + context.parsed.y.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Risk Percentage (%)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Scan ID'
+                            }
+                        }
+                    }
+                }
+            });
+
+            console.log('✓ Chart created');
+        }
+
+        // Create timeline
+        function createTimeline() {
+            var timelineDiv = document.getElementById('timelineContainer');
+            timelineDiv.innerHTML = '';
+
+            // Sort selected scans by date
+            var sortedScans = selectedScans.map(function(id) {
+                return allScans.find(function(s) { return s.id === id; });
+            }).sort(function(a, b) {
+                return new Date(a.timestamp) - new Date(b.timestamp);
+            });
+
+            for (var i = 0; i < sortedScans.length; i++) {
+                var scan = sortedScans[i];
+                var date = new Date(scan.timestamp);
+                var riskClass = 'risk-' + scan.riskLevel;
+
+                var item = document.createElement('div');
+                item.className = 'timeline-item';
+                item.innerHTML = `
+                    <div class="timeline-date">
+                        ${date.toLocaleDateString()}<br>
+                        ${date.toLocaleTimeString()}
+                    </div>
+                    <div class="timeline-content">
+                        <strong>${scan.id}</strong><br>
+                        <span class="risk-badge ${riskClass}">${scan.riskLevel}</span>
+                        <span style="margin-left: 10px;">${scan.riskPercentage.toFixed(1)}%</span><br>
+                        <small style="color: #666;">${scan.scanType} | ${scan.lesions ? scan.lesions.length : 0} lesions detected</small>
+                    </div>
+                `;
+                timelineDiv.appendChild(item);
+            }
+
+            console.log('✓ Timeline created');
+        }
+
+        // Back to selection
+        function backToSelection() {
+            document.getElementById('selectionPanel').style.display = 'block';
+            document.getElementById('comparisonView').classList.remove('active');
+            
+            // Clear selections
+            selectedScans = [];
+            var checkboxes = document.querySelectorAll('.scan-checkbox');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = false;
+            }
+            var options = document.querySelectorAll('.scan-option');
+            for (var i = 0; i < options.length; i++) {
+                options[i].classList.remove('selected');
+            }
+            updateCompareButton();
+        }
+
+        // Initialize
+        loadScans();
+        console.log('✓ Page ready');
+    </script>
+</body>
+</html>

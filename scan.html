@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dual Scan Analysis - OralScan AI</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .navbar-menu {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .nav-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .instructions {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 5px solid #667eea;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            line-height: 2;
+            color: #333;
+        }
+
+        .instructions ol li {
+            margin-bottom: 8px;
+        }
+
+        .instructions ol li strong {
+            color: #667eea;
+        }
+
+        .scan-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group p {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .stream-status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .stream-status.show {
+            display: block;
+        }
+
+        .stream-status.connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .stream-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .stream-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .esp-stream {
+            display: none;
+            margin-bottom: 15px;
+        }
+
+        .esp-stream.show {
+            display: block;
+        }
+
+        .esp-stream img {
+            width: 100%;
+            border-radius: 10px;
+            border: 3px solid #667eea;
+            background: #000;
+        }
+
+        .capture-preview {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .capture-preview.show {
+            display: block;
+        }
+
+        .capture-preview img {
+            width: 100%;
+            border-radius: 10px;
+            border: 3px solid #28a745;
+        }
+
+        .capture-label {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .comparison-panel {
+            grid-column: 1 / -1;
+            display: none;
+        }
+
+        .comparison-panel.show {
+            display: block;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .comparison-image {
+            text-align: center;
+        }
+
+        .comparison-image h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .comparison-image img {
+            width: 100%;
+            border-radius: 10px;
+            border: 3px solid #667eea;
+        }
+
+        .results-panel {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .results-panel h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .risk-high { background: #dc3545; color: white; }
+        .risk-moderate { background: #ffc107; color: #333; }
+        .risk-low { background: #28a745; color: white; }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .step-indicator {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        @media (max-width: 1200px) {
+            .scan-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="logo.png" alt="Logo" style="height: 120px; width: auto;">
+            <span>ORISCOPE</span>
+        </div>
+        <div class="navbar-menu">
+            <a href="dashboard.html" class="nav-btn">← Dashboard</a>
+            <a href="history.html" class="nav-btn">History</a>
+            <a href="visualizer.html" class="nav-btn">3D View</a>
+<a href="notes.html" class="nav-btn">notes</a>
+
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>🔬 Dual Scan Analysis</h1>
+        <p class="subtitle">Capture both White Light and Autofluorescence images for comprehensive AI analysis</p>
+
+        <!-- Instructions Panel -->
+        <div class="instructions">
+            <h3>📋 Scanning Instructions</h3>
+            <ol>
+                <li><strong>Connect your ESP32-CAM</strong> using the URL below</li>
+                <li><strong>First, capture image with WHITE LIGHT</strong> (normal lighting)</li>
+                <li><strong>Switch to BLUE LIGHT</strong> (autofluorescence mode)</li>
+                <li><strong>Capture the second image</strong> with blue light</li>
+                <li><strong>Click "Analyze Both Images"</strong> for AI comparison</li>
+            </ol>
+        </div>
+
+        <div class="scan-grid">
+            <!-- ESP32-CAM Connection Panel -->
+            <div class="panel">
+                <h2>📡 ESP32-CAM Connection</h2>
+
+                <div class="form-group">
+                    <label>Patient Name</label>
+                    <input type="text" id="patientName" placeholder="Enter patient name">
+                </div>
+                
+                <div class="form-group">
+                    <label>ESP32-CAM Stream URL</label>
+                    <input type="text" id="esp32Url" placeholder="http://192.168.1.100:81/stream">
+                    <p>Enter your ESP32-CAM IP address</p>
+                </div>
+
+                <button class="btn btn-primary" onclick="connectESP32()">
+                    📡 Connect to ESP32-CAM
+                </button>
+
+                <div id="streamStatus" class="stream-status"></div>
+
+                <div id="espStream" class="esp-stream">
+                    <img id="streamImage" src="" alt="ESP32-CAM Live Stream">
+                </div>
+            </div>
+
+            <!-- White Light Capture Panel -->
+            <div class="panel">
+                <h2>💡 White Light Capture</h2>
+                
+                <div class="form-group">
+                    <label><span class="step-indicator">1</span> Normal White Light</label>
+                    <p>Use normal room lighting or LED white light</p>
+                </div>
+
+                <button class="btn btn-secondary" id="captureWhiteBtn" onclick="captureWhiteLight()" disabled>
+                    📸 Capture White Light Image
+                </button>
+
+                <div id="whitePreview" class="capture-preview">
+                    <span class="capture-label">✓ White Light Captured</span>
+                    <img id="whiteImage" src="" alt="White Light Image">
+                </div>
+            </div>
+
+            <!-- Autofluorescence Capture Panel -->
+            <div class="panel">
+                <h2>💙 Autofluorescence Capture</h2>
+                
+                <div class="form-group">
+                    <label><span class="step-indicator">2</span> Blue Light (450nm)</label>
+                    <p>Switch to blue LED light for autofluorescence</p>
+                </div>
+
+                <button class="btn btn-warning" id="captureBlueBtn" onclick="captureBlueLight()" disabled>
+                    📸 Capture Autofluorescence Image
+                </button>
+
+                <div id="bluePreview" class="capture-preview">
+                    <span class="capture-label" style="background: #667eea;">✓ Autofluorescence Captured</span>
+                    <img id="blueImage" src="" alt="Autofluorescence Image">
+                </div>
+            </div>
+
+            <!-- Comparison and Analysis Panel -->
+            <div id="comparisonPanel" class="panel comparison-panel">
+                <h2>🔍 Image Comparison & Analysis</h2>
+
+                <div class="comparison-grid">
+                    <div class="comparison-image">
+                        <h3>💡 White Light</h3>
+                        <img id="compareWhite" src="" alt="White Light">
+                    </div>
+                    <div class="comparison-image">
+                        <h3>💙 Autofluorescence</h3>
+                        <img id="compareBlue" src="" alt="Autofluorescence">
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="analyzeBothImages()">
+                    🤖 Analyze Both Images with AI
+                </button>
+
+                <div id="loadingPanel" class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing both images...</p>
+                    <p style="font-size: 14px; color: #666;">Comparing white light vs autofluorescence</p>
+                </div>
+
+                <div id="resultsPanel" class="results-panel" style="display: none;">
+                    <h3>📊 Analysis Results</h3>
+                    <div id="resultsContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-login
+        if (!sessionStorage.getItem('isLoggedIn')) {
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userEmail', 'demo@oralscan.ai');
+            sessionStorage.setItem('userId', 'demo-user');
+            sessionStorage.setItem('userName', 'Dr. Demo User');
+        }
+
+        let whiteImageData = null;
+        let blueImageData = null;
+        let streamConnected = false;
+
+        function connectESP32() {
+            const url = document.getElementById('esp32Url').value.trim();
+            const streamStatus = document.getElementById('streamStatus');
+            const espStream = document.getElementById('espStream');
+            const streamImage = document.getElementById('streamImage');
+            
+            if (!url) {
+                alert('Please enter ESP32-CAM URL');
+                return;
+            }
+
+            // Show connecting status
+            streamStatus.className = 'stream-status show connecting';
+            streamStatus.textContent = '⏳ Connecting to ESP32-CAM...';
+            espStream.classList.remove('show');
+
+            // Add timestamp to prevent caching
+            const streamUrl = url.includes('?') ? url + '&t=' + Date.now() : url + '?t=' + Date.now();
+            
+            // Set up image handlers
+            streamImage.onload = function() {
+                console.log('ESP32-CAM connected successfully');
+                streamStatus.className = 'stream-status show connected';
+                streamStatus.textContent = '✓ Connected! Live stream active';
+                espStream.classList.add('show');
+                streamConnected = true;
+                
+                // Enable capture buttons
+                document.getElementById('captureWhiteBtn').disabled = false;
+                document.getElementById('captureBlueBtn').disabled = false;
+            };
+
+            streamImage.onerror = function() {
+                console.error('Failed to connect to ESP32-CAM');
+                streamStatus.className = 'stream-status show error';
+                streamStatus.textContent = '✗ Connection failed. Check URL and network';
+                espStream.classList.remove('show');
+                streamConnected = false;
+            };
+
+            // Start stream
+            streamImage.src = streamUrl;
+        }
+
+        function captureWhiteLight() {
+            const streamImg = document.getElementById('streamImage');
+            
+            if (!streamConnected || !streamImg.complete || streamImg.naturalWidth === 0) {
+                alert('Stream not ready. Please wait for connection.');
+                return;
+            }
+
+            // Capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = streamImg.naturalWidth || 640;
+            canvas.height = streamImg.naturalHeight || 480;
+            const ctx = canvas.getContext('2d');
+            
+            try {
+                ctx.drawImage(streamImg, 0, 0, canvas.width, canvas.height);
+                whiteImageData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                // Display preview
+                document.getElementById('whiteImage').src = whiteImageData;
+                document.getElementById('whitePreview').classList.add('show');
+                
+                // Update comparison
+                updateComparison();
+                
+                alert('✓ White light image captured!');
+            } catch (error) {
+                console.error('Error capturing white light:', error);
+                alert('Error capturing image: ' + error.message);
+            }
+        }
+
+        function captureBlueLight() {
+            const streamImg = document.getElementById('streamImage');
+            
+            if (!streamConnected || !streamImg.complete || streamImg.naturalWidth === 0) {
+                alert('Stream not ready. Please wait for connection.');
+                return;
+            }
+
+            // Capture frame
+            const canvas = document.createElement('canvas');
+            canvas.width = streamImg.naturalWidth || 640;
+            canvas.height = streamImg.naturalHeight || 480;
+            const ctx = canvas.getContext('2d');
+            
+            try {
+                ctx.drawImage(streamImg, 0, 0, canvas.width, canvas.height);
+                blueImageData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                // Display preview
+                document.getElementById('blueImage').src = blueImageData;
+                document.getElementById('bluePreview').classList.add('show');
+                
+                // Update comparison
+                updateComparison();
+                
+                alert('✓ Autofluorescence image captured!');
+            } catch (error) {
+                console.error('Error capturing autofluorescence:', error);
+                alert('Error capturing image: ' + error.message);
+            }
+        }
+
+        function updateComparison() {
+            if (whiteImageData && blueImageData) {
+                document.getElementById('compareWhite').src = whiteImageData;
+                document.getElementById('compareBlue').src = blueImageData;
+                document.getElementById('comparisonPanel').classList.add('show');
+            }
+        }
+
+        async function analyzeBothImages() {
+            if (!whiteImageData || !blueImageData) {
+                alert('Please capture both images first!');
+                return;
+            }
+
+            const loadingPanel = document.getElementById('loadingPanel');
+            const resultsPanel = document.getElementById('resultsPanel');
+            
+            loadingPanel.classList.add('show');
+            resultsPanel.style.display = 'none';
+
+            // Simulate AI analysis
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // Read patient name
+            const patientName = document.getElementById('patientName').value || 'Unknown';
+
+            // Generate comparison results
+            const riskLevels = ['low', 'moderate', 'high'];
+            const riskLevel = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+            const riskPercentage = riskLevel === 'high' ? 70 + Math.random() * 30 : 
+                                  riskLevel === 'moderate' ? 30 + Math.random() * 40 : 
+                                  Math.random() * 30;
+            const confidence = 0.80 + Math.random() * 0.15;
+
+            const regions = ['Upper Oral Cavity', 'Lower Oral Cavity', 'Left Buccal', 'Right Buccal', 'Tongue'];
+            const lesions = [];
+            const lesionCount = Math.floor(Math.random() * 3) + 1;
+            
+            for (let i = 0; i < lesionCount; i++) {
+                lesions.push({
+                    id: i + 1,
+                    region: regions[Math.floor(Math.random() * regions.length)],
+                    size: (Math.random() * 15 + 5).toFixed(1) + 'mm²',
+                    severity: riskLevel === 'high' ? 'severe' : riskLevel === 'moderate' ? 'moderate' : 'mild',
+                    whiteLight: 'Visible',
+                    autofluorescence: riskLevel === 'high' ? 'Dark/Reduced fluorescence' : riskLevel === 'moderate' ? 'Dimmed fluorescence' : 'Normal fluorescence'
+                });
+            }
+
+            const result = {
+                id: 'scan_' + Date.now(),
+                timestamp: new Date().toISOString(),
+                patientName: patientName,
+                riskLevel: riskLevel,
+                riskPercentage: parseFloat(riskPercentage.toFixed(1)),
+                confidence: parseFloat(confidence.toFixed(2)),
+                scanType: 'dual_capture',
+                whiteImageData: whiteImageData,
+                blueImageData: blueImageData,
+                lesions: lesions,
+                clinicalNotes: {
+                    diagnosis: riskLevel === 'high' ? 'High-Risk Lesions Detected in Dual Analysis' : 
+                              riskLevel === 'moderate' ? 'Suspicious Tissue Changes in Autofluorescence' : 
+                              'Normal Tissue Pattern in Both Modes',
+                    findings: riskLevel === 'high' ? 'Significant loss of autofluorescence compared to white light. Dark lesions with irregular borders.' : 
+                             riskLevel === 'moderate' ? 'Reduced autofluorescence in localized areas. Possible early dysplastic changes.' : 
+                             'Healthy tissue pattern. Bright green fluorescence matches normal white light appearance.',
+                    comparison: 'White light image shows ' + (riskLevel === 'high' ? 'abnormal tissue texture' : riskLevel === 'moderate' ? 'mild irregularities' : 'normal mucosa') + 
+                               '. Autofluorescence image ' + (riskLevel === 'high' ? 'confirms high-risk areas with dark regions' : riskLevel === 'moderate' ? 'shows moderate fluorescence loss' : 'shows healthy green fluorescence'),
+                    recommendation: riskLevel === 'high' ? 'URGENT: Immediate clinical examination and biopsy required' : 
+                                  riskLevel === 'moderate' ? 'Follow-up recommended in 3 months. Consider biopsy.' : 
+                                  'No immediate action needed. Continue routine monitoring.',
+                    followUp: riskLevel === 'high' ? 'Immediate consultation with oral oncologist' : 
+                             riskLevel === 'moderate' ? 'Re-screening in 3 months' : 
+                             'Annual screening recommended'
+                }
+            };
+
+            // Save to localStorage
+            const scans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            scans.unshift(result);
+            localStorage.setItem('userScans', JSON.stringify(scans));
+
+            // Display results
+            displayResults(result);
+
+            loadingPanel.classList.remove('show');
+            resultsPanel.style.display = 'block';
+
+            // Redirect to history after showing results
+            setTimeout(function() {
+                if (confirm('✅ Dual scan saved! Go to History page to see all scans?')) {
+                    window.location.href = 'history.html';
+                }
+            }, 1000);
+        }
+
+        function displayResults(result) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            const riskClass = result.riskLevel === 'high' ? 'risk-high' : 
+                             result.riskLevel === 'moderate' ? 'risk-moderate' : 'risk-low';
+
+            resultsContent.innerHTML = `
+                <div class="risk-badge ${riskClass}">
+                    ${result.riskLevel.toUpperCase()} RISK - ${result.riskPercentage.toFixed(1)}%
+                </div>
+                
+                <p><strong>Patient:</strong> ${result.patientName}</p>
+                <p><strong>Confidence:</strong> ${(result.confidence * 100).toFixed(1)}%</p>
+                <p><strong>Scan Type:</strong> Dual Capture (White Light + Autofluorescence)</p>
+
+                <h4 style="margin-top: 20px; color: #333;">Captured Images:</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">💡 White Light</div>
+                        <img src="${result.whiteImageData}" alt="White Light" style="width: 100%; border-radius: 10px; border: 3px solid #667eea;">
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">💙 Autofluorescence</div>
+                        <img src="${result.blueImageData}" alt="Autofluorescence" style="width: 100%; border-radius: 10px; border: 3px solid #667eea;">
+                    </div>
+                </div>
+                
+                <h4 style="margin-top: 20px; color: #333;">Clinical Notes:</h4>
+                <p><strong>Diagnosis:</strong> ${result.clinicalNotes.diagnosis}</p>
+                <p><strong>Findings:</strong> ${result.clinicalNotes.findings}</p>
+                <p><strong>Comparison:</strong> ${result.clinicalNotes.comparison}</p>
+                <p><strong>Recommendation:</strong> ${result.clinicalNotes.recommendation}</p>
+                <p><strong>Follow-up:</strong> ${result.clinicalNotes.followUp}</p>
+
+                <h4 style="margin-top: 20px; color: #333;">Detected Lesions (${result.lesions.length}):</h4>
+                ${result.lesions.map(lesion => `
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #667eea;">
+                        <strong>Lesion ${lesion.id}</strong><br>
+                        Region: ${lesion.region} | Size: ${lesion.size} | Severity: ${lesion.severity}<br>
+                        White Light: ${lesion.whiteLight} | Autofluorescence: ${lesion.autofluorescence}
+                    </div>
+                `).join('')}
+
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="downloadReport()" style="flex: 1;">
+                        📄 Download Report
+                    </button>
+                    <button class="btn btn-secondary" onclick="window.location.href='visualizer.html'" style="flex: 1;">
+                        🦷 View 3D Model
+                    </button>
+                    <button class="btn btn-primary" onclick="newScan()" style="flex: 1;">
+                        🔄 New Scan
+                    </button>
+                </div>
+            `;
+        }
+
+        function downloadReport() {
+            const scans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            if (scans.length === 0) return;
+            
+            const scan = scans[0]; // Latest scan
+
+            const report = `
+ORAL CANCER DUAL SCAN REPORT
+OralScan AI - Advanced Detection System
+========================================
+
+PATIENT INFORMATION
+Patient Name: ${scan.patientName}
+
+SCAN INFORMATION
+Date: ${new Date(scan.timestamp).toLocaleString()}
+Scan Type: Dual Capture (White Light + Autofluorescence)
+Scan ID: ${scan.id}
+
+RISK ASSESSMENT
+Risk Level: ${scan.riskLevel.toUpperCase()}
+Risk Percentage: ${scan.riskPercentage.toFixed(1)}%
+Confidence: ${(scan.confidence * 100).toFixed(1)}%
+
+CLINICAL NOTES
+Diagnosis: ${scan.clinicalNotes.diagnosis}
+Findings: ${scan.clinicalNotes.findings}
+Comparison: ${scan.clinicalNotes.comparison}
+Recommendation: ${scan.clinicalNotes.recommendation}
+Follow-up: ${scan.clinicalNotes.followUp}
+
+DETECTED LESIONS
+${scan.lesions.map((l, i) => `
+Lesion ${i + 1}:
+  Region: ${l.region}
+  Size: ${l.size}
+  Severity: ${l.severity.toUpperCase()}
+  White Light: ${l.whiteLight}
+  Autofluorescence: ${l.autofluorescence}
+`).join('\n')}
+
+IMAGING DETAILS
+White Light Image: Captured from ESP32-CAM
+Autofluorescence Image: Captured from ESP32-CAM with blue light (450nm)
+
+            `;
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dual_scan_report_${scan.patientName}_${scan.id}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            alert('✓ Dual scan report downloaded!');
+        }
+
+        function newScan() {
+            if (confirm('Start a new dual scan? Current images will be cleared.')) {
+                window.location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

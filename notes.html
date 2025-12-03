@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Notes & Annotations - OralScan AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 30px;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .navbar-menu { display: flex; gap: 20px; }
+        .nav-btn {
+            padding: 10px 20px;
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        .nav-btn:hover { background: #667eea; color: white; }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        .scan-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .scan-list h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .scan-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .scan-item:hover {
+            background: #e8eaf6;
+            border-color: #667eea;
+        }
+        .scan-item.active {
+            background: #e8eaf6;
+            border-color: #667eea;
+        }
+        .scan-item-id {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        .scan-item-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .notes-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+        }
+        .notes-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .notes-header h2 {
+            color: #333;
+            font-size: 22px;
+        }
+        .save-btn {
+            padding: 10px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .annotation-canvas {
+            width: 100%;
+            height: 400px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed #ccc;
+        }
+        .canvas-placeholder {
+            font-size: 48px;
+        }
+        .drawing-tools {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .tool-btn {
+            padding: 10px 15px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .tool-btn:hover {
+            border-color: #667eea;
+        }
+        .tool-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .notes-section {
+            margin-bottom: 25px;
+        }
+        .notes-section h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .notes-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            resize: vertical;
+            min-height: 80px;
+        }
+        .notes-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .highlight-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .recommendations {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .recommendation-chip {
+            padding: 8px 15px;
+            background: #e8eaf6;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #667eea;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .recommendation-chip:hover {
+            background: #667eea;
+            color: white;
+        }
+        .status-message {
+            padding: 15px;
+            background: #d4edda;
+            color: #155724;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .status-message.show {
+            display: block;
+        }
+        .timestamp {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+         <div class="navbar-brand">
+    <img src="logo.png" alt="Logo" style="height: 40px; width: auto;">
+    <span>ORISCOPE</span>
+</div>
+
+
+        <div class="navbar-menu">
+            <a href="dashboard.html" class="nav-btn">← Dashboard</a>
+            <a href="history.html" class="nav-btn">History</a>
+            <a href="comparison.html" class="nav-btn">Compare</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>📝 Medical Notes & Annotations</h1>
+
+        <div class="main-grid">
+            <!-- Scan List -->
+            <div class="scan-list">
+                <h2>📋 Select Scan</h2>
+                <div id="scanListContainer">
+                    <!-- Scans will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Notes Panel -->
+            <div class="notes-panel">
+                <div class="notes-header">
+                    <h2 id="selectedScanTitle">Select a scan to add notes</h2>
+                    <button class="save-btn" id="saveBtn" onclick="saveNotes()" disabled>💾 Save Notes</button>
+                </div>
+
+                <div class="status-message" id="statusMessage"></div>
+
+                <!-- Annotation Canvas -->
+                <div class="annotation-canvas" id="annotationCanvas">
+                    <div class="canvas-placeholder">🦷</div>
+                </div>
+
+                <!-- Drawing Tools -->
+                <div class="drawing-tools">
+                    <button class="tool-btn" onclick="selectTool('pen')">✏️ Pen</button>
+                    <button class="tool-btn" onclick="selectTool('highlighter')">🖍️ Highlight</button>
+                    <button class="tool-btn" onclick="selectTool('arrow')">➡️ Arrow</button>
+                    <button class="tool-btn" onclick="selectTool('text')">📝 Text</button>
+                    <button class="tool-btn" onclick="clearAnnotations()">🗑️ Clear</button>
+                </div>
+
+                <div class="highlight-area">
+                    <span>💡</span>
+                    <span style="font-size: 14px; color: #666;">
+                        Use drawing tools above to annotate areas of interest on the scan image
+                    </span>
+                </div>
+
+                <!-- Clinical Findings -->
+                <div class="notes-section">
+                    <h3>🔬 Clinical Findings</h3>
+                    <textarea class="notes-input" id="findingsInput" placeholder="Describe observations, lesion characteristics, size, location, color changes..."></textarea>
+                </div>
+
+                <!-- Diagnosis -->
+                <div class="notes-section">
+                    <h3>🩺 Preliminary Diagnosis</h3>
+                    <textarea class="notes-input" id="diagnosisInput" placeholder="Enter preliminary diagnosis or differential diagnosis..."></textarea>
+                </div>
+
+                <!-- Treatment Recommendations -->
+                <div class="notes-section">
+                    <h3>💊 Treatment Recommendations</h3>
+                    <textarea class="notes-input" id="recommendationsInput" placeholder="Recommended treatment plan, follow-up schedule, referrals..."></textarea>
+                    
+                    <div class="recommendations">
+                        <div class="recommendation-chip" onclick="addRecommendation('Biopsy required')">🔬 Biopsy</div>
+                        <div class="recommendation-chip" onclick="addRecommendation('Follow-up in 2 weeks')">📅 Follow-up 2w</div>
+                        <div class="recommendation-chip" onclick="addRecommendation('Refer to specialist')">👨‍⚕️ Refer</div>
+                        <div class="recommendation-chip" onclick="addRecommendation('Monitor closely')">👁️ Monitor</div>
+                        <div class="recommendation-chip" onclick="addRecommendation('No action needed')">✅ No action</div>
+                    </div>
+                </div>
+
+                <!-- Additional Notes -->
+                <div class="notes-section">
+                    <h3>📋 Additional Notes</h3>
+                    <textarea class="notes-input" id="additionalInput" placeholder="Any additional observations, patient history, symptoms reported..."></textarea>
+                </div>
+
+                <div class="timestamp" id="lastSaved"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        console.log('✓ Notes page loaded');
+
+        var allScans = [];
+        var currentScanId = null;
+        var currentTool = 'pen';
+
+        // Load scans
+        function loadScans() {
+            allScans = JSON.parse(localStorage.getItem('userScans') || '[]');
+            console.log('✓ Loaded', allScans.length, 'scans');
+
+            var container = document.getElementById('scanListContainer');
+            
+            if (allScans.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; font-size: 14px;">No scans available</p>';
+                return;
+            }
+
+            container.innerHTML = '';
+
+            for (var i = 0; i < allScans.length; i++) {
+                var scan = allScans[i];
+                var date = new Date(scan.timestamp);
+
+                var item = document.createElement('div');
+                item.className = 'scan-item';
+                item.onclick = (function(scanId) {
+                    return function() { selectScan(scanId); };
+                })(scan.id);
+
+                item.innerHTML = `
+                    <div class="scan-item-id">${scan.id}</div>
+                    <div class="scan-item-date">${date.toLocaleDateString()} ${date.toLocaleTimeString()}</div>
+                    <div class="scan-item-date">${scan.riskLevel} risk</div>
+                `;
+
+                container.appendChild(item);
+            }
+        }
+
+        // Select scan
+        function selectScan(scanId) {
+            currentScanId = scanId;
+            console.log('✓ Selected scan:', scanId);
+
+            // Update UI
+            var items = document.querySelectorAll('.scan-item');
+            for (var i = 0; i < items.length; i++) {
+                items[i].classList.remove('active');
+            }
+            event.currentTarget.classList.add('active');
+
+            // Load scan notes
+            var scan = allScans.find(function(s) { return s.id === scanId; });
+            if (!scan) return;
+
+            document.getElementById('selectedScanTitle').textContent = 'Notes for ' + scanId;
+            document.getElementById('saveBtn').disabled = false;
+
+            // Load existing notes if available
+            if (scan.clinicalNotes) {
+                document.getElementById('findingsInput').value = scan.clinicalNotes.findings || '';
+                document.getElementById('diagnosisInput').value = scan.clinicalNotes.diagnosis || '';
+                document.getElementById('recommendationsInput').value = scan.clinicalNotes.recommendation || '';
+                document.getElementById('additionalInput').value = scan.clinicalNotes.additional || '';
+
+                if (scan.clinicalNotes.lastModified) {
+                    document.getElementById('lastSaved').textContent = 'Last saved: ' + new Date(scan.clinicalNotes.lastModified).toLocaleString();
+                }
+            } else {
+                // Clear all inputs
+                document.getElementById('findingsInput').value = '';
+                document.getElementById('diagnosisInput').value = '';
+                document.getElementById('recommendationsInput').value = '';
+                document.getElementById('additionalInput').value = '';
+                document.getElementById('lastSaved').textContent = '';
+            }
+        }
+
+        // Select drawing tool
+        function selectTool(tool) {
+            currentTool = tool;
+            console.log('✓ Tool selected:', tool);
+
+            var buttons = document.querySelectorAll('.tool-btn');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].classList.remove('active');
+            }
+            event.currentTarget.classList.add('active');
+
+            showStatus('Tool selected: ' + tool);
+        }
+
+        // Clear annotations
+        function clearAnnotations() {
+            if (confirm('Clear all annotations?')) {
+                console.log('✓ Annotations cleared');
+                showStatus('Annotations cleared');
+            }
+        }
+
+        // Add recommendation
+        function addRecommendation(text) {
+            var input = document.getElementById('recommendationsInput');
+            var current = input.value.trim();
+            
+            if (current) {
+                input.value = current + '\n• ' + text;
+            } else {
+                input.value = '• ' + text;
+            }
+
+            console.log('✓ Added recommendation:', text);
+        }
+
+        // Save notes
+        function saveNotes() {
+            if (!currentScanId) {
+                alert('⚠️ Please select a scan first');
+                return;
+            }
+
+            var findings = document.getElementById('findingsInput').value.trim();
+            var diagnosis = document.getElementById('diagnosisInput').value.trim();
+            var recommendations = document.getElementById('recommendationsInput').value.trim();
+            var additional = document.getElementById('additionalInput').value.trim();
+
+            // Find and update scan
+            for (var i = 0; i < allScans.length; i++) {
+                if (allScans[i].id === currentScanId) {
+                    allScans[i].clinicalNotes = {
+                        findings: findings,
+                        diagnosis: diagnosis,
+                        recommendation: recommendations,
+                        additional: additional,
+                        lastModified: new Date().toISOString()
+                    };
+                    break;
+                }
+            }
+
+            // Save to localStorage
+            localStorage.setItem('userScans', JSON.stringify(allScans));
+
+            console.log('✓ Notes saved for', currentScanId);
+            showStatus('✅ Notes saved successfully!');
+
+            var timestamp = new Date().toLocaleString();
+            document.getElementById('lastSaved').textContent = 'Last saved: ' + timestamp;
+        }
+
+        // Show status message
+        function showStatus(message) {
+            var statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.classList.add('show');
+
+            setTimeout(function() {
+                statusDiv.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize
+        loadScans();
+        console.log('✓ Page ready');
+    </script>
+</body>
+</html>
