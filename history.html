@@ -6,7 +6,11 @@
     <title>Scan History - OralScan AI</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -32,7 +36,10 @@
             color: #667eea;
         }
 
-        .navbar-menu { display: flex; gap: 20px; }
+        .navbar-menu {
+            display: flex;
+            gap: 20px;
+        }
 
         .nav-btn {
             padding: 10px 20px;
@@ -47,7 +54,10 @@
             text-decoration: none;
         }
 
-        .nav-btn:hover { background: #667eea; color: white; }
+        .nav-btn:hover {
+            background: #667eea;
+            color: white;
+        }
 
         .container {
             max-width: 1400px;
@@ -78,7 +88,10 @@
             gap: 10px;
         }
 
-        .filter-group label { font-weight: 600; color: #333; }
+        .filter-group label {
+            font-weight: 600;
+            color: #333;
+        }
 
         .filter-group select,
         .filter-group input {
@@ -114,7 +127,10 @@
             margin-bottom: 15px;
         }
 
-        .scan-id { font-size: 12px; color: #999; }
+        .scan-id {
+            font-size: 12px;
+            color: #999;
+        }
 
         .scan-date {
             font-weight: 600;
@@ -136,7 +152,9 @@
         .risk-moderate { background: #ffc107; }
         .risk-low { background: #28a745; }
 
-        .scan-info { margin-bottom: 15px; }
+        .scan-info {
+            margin-bottom: 15px;
+        }
 
         .scan-info-row {
             display: flex;
@@ -145,8 +163,14 @@
             font-size: 14px;
         }
 
-        .scan-info-label { color: #666; }
-        .scan-info-value { font-weight: 600; color: #333; }
+        .scan-info-label {
+            color: #666;
+        }
+
+        .scan-info-value {
+            font-weight: 600;
+            color: #333;
+        }
 
         .scan-actions {
             display: grid;
@@ -197,7 +221,9 @@
             width: 90%;
         }
 
-        .chart-container { height: 350px; }
+        .chart-container {
+            height: 350px;
+        }
     </style>
 </head>
 
@@ -213,7 +239,8 @@
             <a href="dashboard.html" class="nav-btn">← Dashboard</a>
             <a href="scan.html" class="nav-btn">New Scan</a>
             <a href="analysis.html" class="nav-btn">analysis</a>
-            <a href="export.html" class="nav-btn">export</a>
+<a href="export.html" class="nav-btn">export</a>
+
         </div>
     </nav>
 
@@ -254,70 +281,148 @@
         <div id="scanContainer" class="scan-grid"></div>
     </div>
 
-    <!-- Modal -->
+    <!-- Analysis Modal -->
     <div id="analysisModal" class="modal">
         <div class="modal-content">
             <h2>📊 Scan Analysis</h2>
-            <div class="chart-container"><canvas id="modalChart"></canvas></div>
+            <div class="chart-container">
+                <canvas id="modalChart"></canvas>
+            </div>
             <button onclick="closeModal()" class="nav-btn" style="margin-top:10px;">Close</button>
         </div>
     </div>
 
 <script>
+/* ======================================================================
+   GLOBALS
+====================================================================== */
 var allScans = [];
 var currentChart = null;
 
-/* ========== LOAD SAFE JSON ========== */
-function safeJSON(value) {
-    try { return JSON.parse(value); }
-    catch { return []; }
+/* ======================================================================
+   UNIQUE NAMES — NO REPEAT
+====================================================================== */
+/* ======================================================================
+   UNIQUE NAMES — NO REPEAT
+====================================================================== */
+const uniquePatientNames = [
+    "Rahul Sharma","Ananya Singh","Vikram Patel","Neha Verma","Amit Kumar",
+    "Priya Desai","Rohit Mehta","Sneha Iyer","Karan Joshi","Pooja Nair",
+    "Arjun Malhotra","Tara Kapoor","Siddharth Rao","Divya Chauhan","Manav Thakur",
+    "Rhea Bansal","Aditya Khanna","Sana Sheikh","Kavya Nambiar","Ishaan Sen",
+    "Kritika Arora","Rohan Batra","Simran Purohit","Dhruv Menon","Aarav Narang",
+    "Meera Kulkarni","Ayush Anand","Harini Raj","Gaurav Jain","Nikita Vaidya",
+    "Shivani Reddy","Pranav Shah","Tanvi Wadhwa","Kabir Kohli","Radhika Pillai",
+    "Yash Rajput","Anjali Naidu","Zoya Merchant","Farhan Qureshi",
+
+    "Aman Trivedi","Krish Chhabra","Arnav Kapoor","Varun Kulkarni","Sameer Banerjee",
+    "Harsh Vaidya","Tanishq Ghosh","Sarthak Rane","Keshav Shetty","Omkar Bhosale",
+    "Tejas Pawar","Viren D’Souza","Jatin Barot","Ishita Dube","Mallika Sethi",
+    "Ayesha Qureshi","Ruhi Mathur","Shreya Borkar","Aditi Chatterjee","Avantika Anand"
+];
+
+/* ======================================================================
+   SAFE LOAD FUNCTION — prevents reset to 0
+====================================================================== */
+function safeLoadLocalScans() {
+    try {
+        const data = JSON.parse(localStorage.getItem("userScans") || "[]");
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
+    }
 }
 
-/* ========== LOAD SCANS ========== */
-function loadScans() {
-    setTimeout(() => {
-        var raw = localStorage.getItem("userScans");
-        var data = raw ? safeJSON(raw) : [];
-
-        if (!Array.isArray(data)) data = [];
-
-        if (data.length === 0) {
-            const samples = createSampleScans();
-            localStorage.setItem("userScans", JSON.stringify(samples));
-            data = samples;
-        }
-
-        allScans = data;
-        applyFilters();
-    }, 200);
-}
-
-/* ========== SAMPLE SCANS (unchanged) ========== */
+/* ======================================================================
+   SAMPLE SCANS — only if storage empty
+====================================================================== */
 function createSampleScans() {
-    var sample = [];
-    var risk = ['low','moderate','high'];
-    var types = ['autofluorescence','normal'];
-    var names = [
-        "Rahul Sharma","Ananya Singh","Vikram Patel","Neha Verma","Amit Kumar",
-        "Priya Desai","Rohit Mehta","Sneha Iyer","Karan Joshi","Pooja Nair"
-    ];
+    var sampleScans = [];
+    var riskLevels = ['low', 'moderate', 'high'];
+    var scanTypes = ['autofluorescence', 'normal'];
+    var regions = ['Upper Oral Cavity','Lower Oral Cavity','Left Buccal','Right Buccal','Tongue'];
 
-    for (let i = 0; i < 10; i++) {
-        sample.push({
-            id: "scan_"+crypto.randomUUID(),
-            timestamp: new Date(Date.now() - Math.random()*1e9).toISOString(),
-            riskLevel: risk[i % 3],
-            riskPercentage: Math.floor(Math.random()*100),
-            confidence: 0.8,
-            scanType: types[i % 2],
-            lesions: [{ region:"tongue", size:"12mm", severity:"mild" }],
-            patientName: names[i]
+    // SHUFFLE NAMES ONCE & USE FIRST 20
+    let names = [...uniquePatientNames];
+    for (let i = names.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [names[i], names[j]] = [names[j], names[i]];
+    }
+    names = names.slice(0, 20); // ensures uniqueness
+
+    for (let i = 0; i < 20; i++) {
+
+        // ⭐ RANDOM DATE IN LAST 14 DAYS (2 weeks)
+        const randomDaysAgo = Math.floor(Math.random() * 14);  // 0–13 days
+        const randomHours = Math.floor(Math.random() * 24);
+        const randomMinutes = Math.floor(Math.random() * 60);
+        const randomSeconds = Math.floor(Math.random() * 60);
+
+        const date = new Date();
+        date.setDate(date.getDate() - randomDaysAgo);
+        date.setHours(randomHours, randomMinutes, randomSeconds, 0);
+
+        const randomTimestamp = date.toISOString();
+
+        sampleScans.push({
+            id: "scan_" + crypto.randomUUID(),   // ⭐ guaranteed unique ID
+            timestamp: randomTimestamp,          // ⭐ new timestamp
+            riskLevel: riskLevels[i % 3],
+            riskPercentage: Number((Math.random() * 100).toFixed(1)),
+            confidence: Number((0.75 + Math.random() * 0.2).toFixed(2)),
+            scanType: scanTypes[i % 2],
+            lesions: [
+                { id: 1, region: "Tongue", size: "12mm²", severity: "mild" }
+            ],
+            patientName: names[i],  // ⭐ guaranteed unique
+            clinicalNotes: {
+                diagnosis: "Normal",
+                findings: "Healthy fluorescence",
+                recommendation: "Routine check"
+            }
         });
     }
-    return sample;
+
+    return sampleScans;
 }
 
-/* ========== DISPLAY SCANS (PATCHED) ========== */
+
+/* ======================================================================
+   LOAD SCANS (real + sample)
+====================================================================== */
+function loadScans() {
+    var data = safeLoadLocalScans();
+
+    if (data.length === 0) {
+        const samples = createSampleScans();
+        localStorage.setItem("userScans", JSON.stringify(samples));
+        data = samples;
+    } else {
+        // NEVER overwrite or recreate anything again
+    }
+
+    allScans = data;
+
+    // 🔥 FIX: Guarantee lesions always exists
+    allScans = allScans.map(s => {
+        if (!Array.isArray(s.lesions)) {
+            s.lesions = [];
+        }
+        return s;
+    });
+
+    applyFilters();
+}
+/* ======================================================================
+   FIND BY ID
+====================================================================== */
+function findScanById(id) {
+    return allScans.find(s => s.id === id);
+}
+
+/* ======================================================================
+   DISPLAY CARDS — ORIGINAL RESTORED
+====================================================================== */
 function displayScans(scans) {
     var container = document.getElementById('scanContainer');
 
@@ -327,14 +432,11 @@ function displayScans(scans) {
         return;
     }
 
-    var html = "";
+    var html = '';
 
-    for (var i = 0; i < scans.length; i++) {
+    for (var i=0; i<scans.length; i++) {
         var scan = scans[i];
         var date = new Date(scan.timestamp).toLocaleString();
-
-        /* ⭐ FIX: safe lesions count */
-        var lesionCount = scan.lesions ? scan.lesions.length : 0;
 
         html += `
         <div class="scan-card">
@@ -343,9 +445,7 @@ function displayScans(scans) {
                     <div class="scan-id">ID: ${scan.id.substring(0,20)}...</div>
                     <div class="scan-date">${date}</div>
                 </div>
-                <span class="risk-badge risk-${scan.riskLevel}">
-                    ${scan.riskLevel.toUpperCase()}
-                </span>
+                <span class="risk-badge risk-${scan.riskLevel}">${scan.riskLevel.toUpperCase()}</span>
             </div>
 
             <div class="scan-info">
@@ -353,25 +453,21 @@ function displayScans(scans) {
                     <span class="scan-info-label">Patient:</span>
                     <span class="scan-info-value">${scan.patientName}</span>
                 </div>
-
                 <div class="scan-info-row">
                     <span class="scan-info-label">Risk:</span>
                     <span class="scan-info-value">${scan.riskPercentage}%</span>
                 </div>
-
                 <div class="scan-info-row">
                     <span class="scan-info-label">Confidence:</span>
                     <span class="scan-info-value">${(scan.confidence*100).toFixed(0)}%</span>
                 </div>
-
                 <div class="scan-info-row">
                     <span class="scan-info-label">Type:</span>
                     <span class="scan-info-value">${scan.scanType}</span>
                 </div>
-
                 <div class="scan-info-row">
                     <span class="scan-info-label">Lesions:</span>
-                    <span class="scan-info-value">${lesionCount}</span>
+                    <span class="scan-info-value">${scan.lesions.length}</span>
                 </div>
             </div>
 
@@ -384,17 +480,168 @@ function displayScans(scans) {
     }
 
     container.innerHTML = html;
+
     attachButtonListeners();
 }
 
-/* ========== FILTERS ========== */
+/* ======================================================================
+   ORIGINAL VIEW RESTORED
+====================================================================== */
+function handleViewClick(e) {
+    var id = e.target.getAttribute('data-scan-id');
+    var scan = findScanById(id);
+    if (!scan) return;
+
+    var msg = 'SCAN DETAILS\n\n';
+    msg += 'ID: ' + scan.id + '\n';
+    msg += 'Date: ' + new Date(scan.timestamp).toLocaleString() + '\n';
+    msg += 'Risk: ' + scan.riskLevel.toUpperCase() + ' (' + scan.riskPercentage + '%)\n';
+    msg += 'Confidence: ' + (scan.confidence * 100).toFixed(0) + '%\n';
+    msg += 'Type: ' + scan.scanType + '\n\n';
+    msg += 'DIAGNOSIS:\n' + scan.clinicalNotes.diagnosis + '\n\n';
+    msg += 'FINDINGS:\n' + scan.clinicalNotes.findings + '\n\n';
+    msg += 'RECOMMENDATION:\n' + scan.clinicalNotes.recommendation + '\n\n';
+    msg += 'LESIONS (' + scan.lesions.length + '):\n';
+
+    for (var i = 0; i < scan.lesions.length; i++) {
+        var l = scan.lesions[i];
+        msg += (i+1) + '. ' + l.region + ' - ' + l.size + ' (' + l.severity + ')\n';
+    }
+
+    alert(msg);
+}
+
+/* ======================================================================
+   ORIGINAL ANALYZE RESTORED
+====================================================================== */
+function handleAnalyzeClick(e) {
+    var id = e.target.getAttribute('data-scan-id');
+    var scan = findScanById(id);
+    if (!scan) return;
+
+    document.getElementById("analysisModal").classList.add("active");
+
+    setTimeout(() => createChart(scan), 100);
+}
+
+/* ======================================================================
+   ORIGINAL DOWNLOAD RESTORED
+====================================================================== */
+function handleDownloadClick(e) {
+    var id = e.target.getAttribute('data-scan-id');
+    var scan = findScanById(id);
+    if (!scan) return;
+
+    var report =
+`═══════════════════════════════════════════════════════
+           ORAL CANCER SCREENING REPORT
+           OralScan AI Detection System
+═══════════════════════════════════════════════════════
+
+SCAN INFORMATION
+Date: ${new Date(scan.timestamp).toLocaleString()}
+Scan Type: ${scan.scanType.toUpperCase()}
+Scan ID: ${scan.id}
+
+RISK ASSESSMENT
+Risk Level: ${scan.riskLevel.toUpperCase()}
+Risk Percentage: ${scan.riskPercentage}%
+Confidence: ${(scan.confidence*100).toFixed(0)}%
+
+CLINICAL NOTES
+Diagnosis: ${scan.clinicalNotes.diagnosis}
+Findings: ${scan.clinicalNotes.findings}
+Recommendation: ${scan.clinicalNotes.recommendation}
+
+DETECTED LESIONS (${scan.lesions.length} Total)
+`;
+
+    scan.lesions.forEach((l, i) => {
+        report += `
+Lesion ${i+1}:
+  Region: ${l.region}
+  Size: ${l.size}
+  Severity: ${l.severity.toUpperCase()}
+`;
+    });
+
+    report += `
+═══════════════════════════════════════════════════════
+Generated by OralScan AI © 2024
+═══════════════════════════════════════════════════════`;
+
+    var blob = new Blob([report], { type:"text/plain" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = 'OralScan_Report_' + scan.id.substring(0,15) + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    alert('✓ Report downloaded successfully!');
+}
+
+/* ======================================================================
+   CHART RESTORED
+====================================================================== */
+function createChart(scan) {
+    if (currentChart) currentChart.destroy();
+
+    var ctx = document.getElementById('modalChart');
+
+    currentChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Risk', 'Confidence', 'Lesions (x10)'],
+            datasets: [{
+                data: [
+                    scan.riskPercentage,
+                    scan.confidence * 100,
+                    scan.lesions.length * 10
+                ],
+                backgroundColor: [
+                    scan.riskLevel === 'high' ? '#dc3545' : 
+                    scan.riskLevel === 'moderate' ? '#ffc107' : '#28a745',
+                    '#667eea',
+                    '#764ba2'
+                ],
+                borderRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display:false } },
+            scales: { y: { beginAtZero:true, max:100 } }
+        }
+    });
+}
+
+/* ======================================================================
+   BUTTON LISTENERS (original)
+====================================================================== */
+function attachButtonListeners() {
+    document.querySelectorAll('.btn-view').forEach(btn =>
+        btn.addEventListener('click', handleViewClick)
+    );
+    document.querySelectorAll('.btn-analyze').forEach(btn =>
+        btn.addEventListener('click', handleAnalyzeClick)
+    );
+    document.querySelectorAll('.btn-download').forEach(btn =>
+        btn.addEventListener('click', handleDownloadClick)
+    );
+}
+
+/* ======================================================================
+   FILTERS
+====================================================================== */
 function applyFilters() {
     var riskFilter = document.getElementById('riskFilter').value;
     var sortBy = document.getElementById('sortBy').value;
-    var searchTerm =
-        document.getElementById('searchBox').value.toLowerCase();
-    var patientTerm =
-        document.getElementById('patientSearch').value.toLowerCase();
+    var searchTerm = document.getElementById('searchBox').value.toLowerCase();
+    var patientTerm = document.getElementById('patientSearch').value.toLowerCase();
 
     var filtered = allScans.slice();
 
@@ -411,112 +658,48 @@ function applyFilters() {
 
     if (patientTerm) {
         filtered = filtered.filter(s =>
-            s.patientName.toLowerCase().includes(patientTerm)
+            (s.patientName || "").toLowerCase().includes(patientTerm)
         );
     }
 
     if (sortBy === "newest") {
-        filtered.sort((a,b)=> new Date(b.timestamp)-new Date(a.timestamp));
-    }
+        filtered.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+    } 
     else if (sortBy === "oldest") {
-        filtered.sort((a,b)=> new Date(a.timestamp)-new Date(b.timestamp));
-    }
+        filtered.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+    } 
     else if (sortBy === "risk-high") {
         const order = { high:3, moderate:2, low:1 };
-        filtered.sort((a,b)=> order[b.riskLevel]-order[a.riskLevel]);
+        filtered.sort((a,b)=>order[b.riskLevel]-order[a.riskLevel]);
     }
 
     displayScans(filtered);
 }
 
-/* ========== VIEW / ANALYZE / DOWNLOAD — unchanged except patch ========== */
-function attachButtonListeners() {
-    document.querySelectorAll('.btn-view').forEach(btn =>
-        btn.addEventListener('click', handleViewClick)
-    );
-    document.querySelectorAll('.btn-analyze').forEach(btn =>
-        btn.addEventListener('click', handleAnalyzeClick)
-    );
-    document.querySelectorAll('.btn-download').forEach(btn =>
-        btn.addEventListener('click', handleDownloadClick)
-    );
+function filterByPatient() {
+    applyFilters();
 }
 
-function handleViewClick(e) {
-    var scan = allScans.find(s => s.id === e.target.dataset.scanId);
-    if (!scan) return;
-
-    var lesionCount = scan.lesions ? scan.lesions.length : 0;
-
-    var msg = `
-SCAN DETAILS
-
-ID: ${scan.id}
-Date: ${new Date(scan.timestamp).toLocaleString()}
-Risk: ${scan.riskLevel.toUpperCase()} (${scan.riskPercentage}%)
-Confidence: ${(scan.confidence*100).toFixed(0)}%
-Type: ${scan.scanType}
-
-Lesions: ${lesionCount}
-`;
-
-    alert(msg);
-}
-
-function handleAnalyzeClick(e) {
-    var scan = allScans.find(s => s.id === e.target.dataset.scanId);
-    if (!scan) return;
-
-    document.getElementById("analysisModal").classList.add("active");
-    setTimeout(() => createChart(scan), 100);
-}
-
-function handleDownloadClick(e) {
-    var scan = allScans.find(s => s.id === e.target.dataset.scanId);
-    if (!scan) return;
-
-    var lesionCount = scan.lesions ? scan.lesions.length : 0;
-
-    var report =
-`SCAN REPORT
-ID: ${scan.id}
-Date: ${new Date(scan.timestamp).toLocaleString()}
-Risk: ${scan.riskLevel}
-Lesions: ${lesionCount}
-`;
-
-    var blob = new Blob([report], { type:"text/plain" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "scan_report.txt";
-    a.click();
-}
-
-/* ========== CHART ========== */
-function createChart(scan) {
+/* ======================================================================
+   MODAL CLOSE
+====================================================================== */
+function closeModal() {
+    document.getElementById('analysisModal').classList.remove('active');
     if (currentChart) currentChart.destroy();
-
-    var lesionCount = scan.lesions ? scan.lesions.length : 0;
-
-    currentChart = new Chart(document.getElementById('modalChart'), {
-        type: 'bar',
-        data: {
-            labels: ['Risk', 'Confidence', 'Lesions (x10)'],
-            datasets: [{
-                data: [
-                    scan.riskPercentage,
-                    scan.confidence * 100,
-                    lesionCount * 10
-                ],
-                backgroundColor: ['#dc3545','#667eea','#764ba2'],
-                borderRadius: 8
-            }]
-        },
-        options: { responsive:true, maintainAspectRatio:false }
-    });
 }
 
-/* ========== INIT ========== */
+/* ======================================================================
+   REALTIME SYNC FROM scan.html
+====================================================================== */
+window.addEventListener("storage", function(event) {
+    if (event.key === "userScans") {
+        loadScans();
+    }
+});
+
+/* ======================================================================
+   INIT
+====================================================================== */
 window.addEventListener('load', loadScans);
 setInterval(loadScans, 5000);
 
