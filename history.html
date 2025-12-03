@@ -689,18 +689,24 @@ function closeModal() {
 }
 
 /* ======================================================================
-   REALTIME SYNC FROM scan.html
-====================================================================== */
-window.addEventListener("storage", function(event) {
-    if (event.key === "userScans") {
-        loadScans();
+  let lastLocalValue = localStorage.getItem("userScans");
+
+function watchLocalScans() {
+    let currentValue = localStorage.getItem("userScans");
+
+    // Only reload if data actually changed
+    if (currentValue !== lastLocalValue) {
+        lastLocalValue = currentValue;
+        loadScans();  // 🔥 instantly updates names, lesions, type, etc.
     }
+}
+
+// Run immediately
+window.addEventListener('load', () => {
+    loadScans();
+    setInterval(watchLocalScans, 500); // checks 2 times per second
 });
 
-/* ======================================================================
-   INIT
-====================================================================== */
-window.addEventListener('load', loadScans);
 
 document.getElementById('riskFilter').addEventListener('change', applyFilters);
 document.getElementById('sortBy').addEventListener('change', applyFilters);
