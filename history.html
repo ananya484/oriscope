@@ -390,21 +390,31 @@ function createSampleScans() {
 /* ======================================================================
    LOAD SCANS (real + sample)
 ====================================================================== */
-function loadScans() {
-    var data = safeLoadLocalScans();
-
-    if (data.length === 0) {
-    const samples = createSampleScans();
-    localStorage.setItem("userScans", JSON.stringify(samples));
-    data = samples;
-} else {
-    // NEVER overwrite or recreate anything again
+function safeJSON(value) {
+    try {
+        return JSON.parse(value);
+    } catch (e) {
+        return [];
+    }
 }
 
+function loadScans() {
+    setTimeout(() => {
+        var raw = localStorage.getItem("userScans");
+        var data = raw ? safeJSON(raw) : [];
 
-    allScans = data;
+        if (!Array.isArray(data)) data = [];
 
-    applyFilters();
+        // If empty, create sample ONCE
+        if (data.length === 0) {
+            const samples = createSampleScans();
+            localStorage.setItem("userScans", JSON.stringify(samples));
+            data = samples;
+        }
+
+        allScans = data;
+        applyFilters();
+    }, 200);
 }
 
 /* ======================================================================
