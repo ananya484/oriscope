@@ -224,6 +224,46 @@
         .chart-container {
             height: 350px;
         }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin: 30px 0;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .pagination-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .pagination-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pagination-info {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
     </style>
 </head>
 
@@ -278,7 +318,19 @@
             </div>
         </div>
 
+        <div class="pagination">
+            <button class="pagination-btn" id="prevBtn" onclick="previousPage()">← Previous</button>
+            <span class="pagination-info" id="pageInfo">Page 1 of 1</span>
+            <button class="pagination-btn" id="nextBtn" onclick="nextPage()">Next →</button>
+        </div>
+
         <div id="scanContainer" class="scan-grid"></div>
+
+        <div class="pagination">
+            <button class="pagination-btn" id="prevBtn2" onclick="previousPage()">← Previous</button>
+            <span class="pagination-info" id="pageInfo2">Page 1 of 1</span>
+            <button class="pagination-btn" id="nextBtn2" onclick="nextPage()">Next →</button>
+        </div>
     </div>
 
     <div id="analysisModal" class="modal">
@@ -294,6 +346,9 @@
 <script>
 var allScans = [];
 var currentChart = null;
+var currentPage = 1;
+var scansPerPage = 20;
+var filteredScans = [];
 
 var uniquePatientNames = [
     "Rahul Sharma","Ananya Singh","Vikram Patel","Neha Verma","Amit Kumar",
@@ -326,19 +381,20 @@ function createSampleScans() {
     var regions = ['Upper Oral Cavity','Lower Oral Cavity','Left Buccal','Right Buccal','Tongue'];
 
     var names = uniquePatientNames.slice();
-    for (var i = names.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var temp = names[i];
-        names[i] = names[j];
-        names[j] = temp;
+    
+    var totalScans = 100;
+    var expandedNames = [];
+    for (var i = 0; i < totalScans; i++) {
+        expandedNames.push(names[i % names.length]);
     }
-    names = names.slice(0, 20);
 
-    for (var i = 0; i < 20; i++) {
-        var randomDaysAgo = Math.floor(Math.random() * 14);
-        var randomHours = Math.floor(Math.random() * 24);
-        var randomMinutes = Math.floor(Math.random() * 60);
-        var randomSeconds = Math.floor(Math.random() * 60);
+    for (var i = 0; i < totalScans; i++) {
+        var seed = i * 12345;
+        
+        var randomDaysAgo = (seed % 21);
+        var randomHours = (seed * 7) % 24;
+        var randomMinutes = (seed * 13) % 60;
+        var randomSeconds = (seed * 17) % 60;
 
         var date = new Date();
         date.setDate(date.getDate() - randomDaysAgo);
@@ -346,23 +402,71 @@ function createSampleScans() {
 
         var randomTimestamp = date.toISOString();
         
-        var patientName = names[i];
+        var patientName = expandedNames[i];
+        var riskLevel = riskLevels[i % 3];
+        
+        var riskPercentage;
+        var lesionCount;
+        var severity;
+        var diagnosis;
+        var findings;
+        var recommendation;
+        
+        var seedForRisk = (seed * 23) % 100;
+        var seedForLesion = (seed * 31) % 10;
+        
+        if (riskLevel === 'high') {
+            riskPercentage = Number((70 + (seedForRisk % 30)).toFixed(1));
+            lesionCount = (seedForLesion % 3) + 3;
+            severity = 'severe';
+            diagnosis = 'High-Risk Lesions Detected';
+            findings = 'Significant loss of autofluorescence. Dark lesions with irregular borders.';
+            recommendation = 'URGENT: Immediate clinical examination and biopsy required';
+        } else if (riskLevel === 'moderate') {
+            riskPercentage = Number((40 + (seedForRisk % 30)).toFixed(1));
+            lesionCount = (seedForLesion % 2) + 2;
+            severity = 'moderate';
+            diagnosis = 'Suspicious Tissue Changes';
+            findings = 'Reduced autofluorescence in localized areas. Possible early dysplastic changes.';
+            recommendation = 'Follow-up recommended in 3 months. Consider biopsy.';
+        } else {
+            riskPercentage = Number((seedForRisk % 30).toFixed(1));
+            lesionCount = (seedForLesion % 2) + 1;
+            severity = 'mild';
+            diagnosis = 'Normal Tissue Pattern';
+            findings = 'Healthy tissue pattern. Bright green fluorescence matches normal appearance.';
+            recommendation = 'No immediate action needed. Continue routine monitoring.';
+        }
+        
+        var lesionsArray = [];
+        for (var j = 0; j < lesionCount; j++) {
+            var seedForSize = (seed * 37 + j * 41) % 100;
+            var lesionSize = ((seedForSize % 15) + 5).toFixed(1) + 'mm²';
+            var regionIndex = (seed * 43 + j * 47) % regions.length;
+            lesionsArray.push({
+                id: j + 1,
+                region: regions[regionIndex],
+                size: lesionSize,
+                severity: severity
+            });
+        }
+
+        var seedForConfidence = (seed * 53) % 100;
+        var confidence = Number((0.75 + (seedForConfidence % 20) / 100).toFixed(2));
 
         sampleScans.push({
-            id: "scan_" + Date.now() + "_" + i + "_" + Math.random().toString(36).substr(2, 9),
+            id: "scan_" + (1700000000000 + i * 86400000) + "_" + i,
             timestamp: randomTimestamp,
             patientName: patientName,
-            riskLevel: riskLevels[i % 3],
-            riskPercentage: Number((Math.random() * 100).toFixed(1)),
-            confidence: Number((0.75 + Math.random() * 0.2).toFixed(2)),
+            riskLevel: riskLevel,
+            riskPercentage: riskPercentage,
+            confidence: confidence,
             scanType: scanTypes[i % 2],
-            lesions: [
-                { id: 1, region: regions[i % regions.length], size: "12mm²", severity: "mild" }
-            ],
+            lesions: lesionsArray,
             clinicalNotes: {
-                diagnosis: "Normal",
-                findings: "Healthy fluorescence",
-                recommendation: "Routine check"
+                diagnosis: diagnosis,
+                findings: findings,
+                recommendation: recommendation
             }
         });
     }
@@ -374,23 +478,34 @@ function loadScans() {
     var data = safeLoadLocalScans();
 
     if (data.length === 0) {
+        console.log('First time load - creating 50 sample scans');
         var samples = createSampleScans();
         localStorage.setItem("userScans", JSON.stringify(samples));
         data = samples;
+    } else {
+        console.log('Loading existing scans from localStorage:', data.length, 'scans');
     }
 
     allScans = data;
 
-    allScans = allScans.map(function(s) {
+    var needsSave = false;
+    allScans = allScans.map(function(s, index) {
         if (!Array.isArray(s.lesions)) {
             s.lesions = [];
         }
-        if (!s.patientName || s.patientName === "Unknown" || s.patientName === "") {
-            var randomIndex = Math.floor(Math.random() * uniquePatientNames.length);
-            s.patientName = uniquePatientNames[randomIndex];
+        
+        if (!s.patientName || s.patientName === "Unknown" || s.patientName === "undefined" || s.patientName === "") {
+            s.patientName = uniquePatientNames[index % uniquePatientNames.length];
+            needsSave = true;
         }
+        
         return s;
     });
+
+    if (needsSave) {
+        console.log('Fixed missing patient names, saving to localStorage');
+        localStorage.setItem("userScans", JSON.stringify(allScans));
+    }
 
     applyFilters();
 }
@@ -406,16 +521,23 @@ function findScanById(id) {
 
 function displayScans(scans) {
     var container = document.getElementById('scanContainer');
+    filteredScans = scans;
 
     if (!scans || scans.length === 0) {
         container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h2>No Scans Found</h2></div>';
+        updatePaginationControls(0, 0);
         return;
     }
 
+    var totalPages = Math.ceil(scans.length / scansPerPage);
+    var startIndex = (currentPage - 1) * scansPerPage;
+    var endIndex = Math.min(startIndex + scansPerPage, scans.length);
+    var scansToDisplay = scans.slice(startIndex, endIndex);
+
     var html = '';
 
-    for (var i = 0; i < scans.length; i++) {
-        var scan = scans[i];
+    for (var i = 0; i < scansToDisplay.length; i++) {
+        var scan = scansToDisplay[i];
         var date = new Date(scan.timestamp).toLocaleString();
         var scanIdShort = scan.id.substring(0, 20);
 
@@ -459,6 +581,7 @@ function displayScans(scans) {
 
     container.innerHTML = html;
 
+    updatePaginationControls(scans.length, totalPages);
     attachButtonListeners();
 }
 
@@ -643,7 +766,42 @@ function applyFilters() {
         });
     }
 
+    currentPage = 1;
     displayScans(filtered);
+}
+
+function updatePaginationControls(totalScans, totalPages) {
+    var pageInfo = 'Page ' + currentPage + ' of ' + totalPages + ' (Showing ' + totalScans + ' scans)';
+    document.getElementById('pageInfo').textContent = pageInfo;
+    document.getElementById('pageInfo2').textContent = pageInfo;
+    
+    var prevBtns = [document.getElementById('prevBtn'), document.getElementById('prevBtn2')];
+    var nextBtns = [document.getElementById('nextBtn'), document.getElementById('nextBtn2')];
+    
+    for (var i = 0; i < prevBtns.length; i++) {
+        prevBtns[i].disabled = currentPage === 1;
+    }
+    
+    for (var i = 0; i < nextBtns.length; i++) {
+        nextBtns[i].disabled = currentPage === totalPages || totalPages === 0;
+    }
+}
+
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        displayScans(filteredScans);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function nextPage() {
+    var totalPages = Math.ceil(filteredScans.length / scansPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        displayScans(filteredScans);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 }
 
 function closeModal() {
@@ -678,3 +836,6 @@ document.getElementById('patientSearch').addEventListener('input', applyFilters)
 
 </body>
 </html>
+
+
+
