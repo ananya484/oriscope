@@ -412,26 +412,26 @@ function createSampleScans() {
         var findings;
         var recommendation;
         
-        var seedForRisk = (seed * 23) % 100;
-        var seedForLesion = (seed * 31) % 10;
+        var seedForRisk = ((i + 1) * 23) % 100;
+        var seedForLesion = ((i + 1) * 7) % 100;
         
         if (riskLevel === 'high') {
-            riskPercentage = Number((70 + (seedForRisk % 30)).toFixed(1));
-            lesionCount = (seedForLesion % 3) + 3;
+            riskPercentage = Number((70 + (seedForRisk % 31)).toFixed(1));
+            lesionCount = Math.floor((seedForLesion % 3) + 3);
             severity = 'severe';
             diagnosis = 'High-Risk Lesions Detected';
             findings = 'Significant loss of autofluorescence. Dark lesions with irregular borders.';
             recommendation = 'URGENT: Immediate clinical examination and biopsy required';
         } else if (riskLevel === 'moderate') {
-            riskPercentage = Number((40 + (seedForRisk % 30)).toFixed(1));
-            lesionCount = (seedForLesion % 2) + 2;
+            riskPercentage = Number((40 + (seedForRisk % 31)).toFixed(1));
+            lesionCount = Math.floor((seedForLesion % 2) + 2);
             severity = 'moderate';
             diagnosis = 'Suspicious Tissue Changes';
             findings = 'Reduced autofluorescence in localized areas. Possible early dysplastic changes.';
             recommendation = 'Follow-up recommended in 3 months. Consider biopsy.';
         } else {
-            riskPercentage = Number((seedForRisk % 30).toFixed(1));
-            lesionCount = (seedForLesion % 2) + 1;
+            riskPercentage = Number((seedForRisk % 31).toFixed(1));
+            lesionCount = Math.floor((seedForLesion % 2) + 1);
             severity = 'mild';
             diagnosis = 'Normal Tissue Pattern';
             findings = 'Healthy tissue pattern. Bright green fluorescence matches normal appearance.';
